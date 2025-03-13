@@ -37,18 +37,32 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer, {});
 
 // Socket event handling
-io.on("connect", newClientSocket => {
-    console.log(`New connection established (id: ${newClientSocket.id})`);
+// io.on("connect", newClientSocket => {
+//   console.log(`New connection established (id: ${newClientSocket.id})`);
 
-    // Hook-up the "our custom event" listener
-    newClientSocket.on("a custom event name", dataSentWithClientEmit => {
-        console.log("A client has emitted an event with data =", dataSentWithClientEmit);
-    });
+io.on("connect", (socket) => {
+  console.log("New connection", socket.id);
 
-    newClientSocket.emit(
-      "a hello from the server",
-      `hello ${newClientSocket.id}!`
-    );  
+  // Client will have to emit "join" with joinInfo
+  socket.on("join", (joinInfo) => {
+    console.log(joinInfo);
+    // The client has to be sending joinInfo in this format
+    const { roomName, userName } = joinInfo;
+
+    // Using socket.data to keep track of the new client identifier: userName
+    socket.data.userName = userName; // keep track of unique user identifier
+
+    // Add the socket to the roomName room
+    socket.join(roomName);
+
+    // socket.id is a "connection id" and works as a "single socket room" for direct messages
+    // socket.emit("joined", roomName); // equivalent call
+    io.to(socket.id).emit("joined", roomName);
+
+    // Add your own event emit here
+    // So that clients on the room can be notified that a new user as joined
+    io.to(roomName).emit("new-user", [userName, roomName]);
+  });
 });
 
 // Start the server listening on PORT, then call the callback (second argument)
