@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 
 import { Server } from "socket.io";
+import * as data from "./data.js";
 
 // Reads PORT from the OS, the --env-file flag, or defaults to 9000
 const PORT = process.env.PORT || 9000;
@@ -43,25 +44,34 @@ const io = new Server(httpServer, {});
 io.on("connect", (socket) => {
   console.log("New connection", socket.id);
 
-  // Client will have to emit "join" with joinInfo
   socket.on("join", (joinInfo) => {
-    console.log(joinInfo);
-    // The client has to be sending joinInfo in this format
     const { roomName, userName } = joinInfo;
 
-    // Using socket.data to keep track of the new client identifier: userName
-    socket.data.userName = userName; // keep track of unique user identifier
+    if (data.isUserNameTaken(userName)) {
+      joinInfo.error = `The name ${userName} is already taken`;
+    } else {
+      data.registerUser(userName);
+      socket.data = joinInfo;
+      socket.join(roomName);
+      socket.on("disconnect", () => data.unregisterUser(userName));
 
-    // Add the socket to the roomName room
-    socket.join(roomName);
+      data.addMessage(roomName, {
+        sender: "",
+        text: `${userName} has joined room ${roomName}`,
+      });
+      io.to(roomName).emit("chat update", data.roomLog(roomName));
 
-    // socket.id is a "connection id" and works as a "single socket room" for direct messages
-    // socket.emit("joined", roomName); // equivalent call
-    io.to(socket.id).emit("joined", roomName);
+      socket.on("message", (text) => {
+        const { roomName, userName } = socket.data;
+        const messageInfo = { sender: userName, text };
+        console.log(roomName, messageInfo);
+        data.addMessage(roomName, messageInfo);
+        io.to(roomName).emit("chat update", data.roomLog(roomName));
+      });
+    }
 
-    // Add your own event emit here
-    // So that clients on the room can be notified that a new user as joined
-    io.to(roomName).emit("new-user", [userName, roomName]);
+    console.log(joinInfo);
+    socket.emit("join-response", joinInfo);
   });
 });
 
