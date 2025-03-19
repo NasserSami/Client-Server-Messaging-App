@@ -55,15 +55,25 @@ io.on("connect", (socket) => {
       socket.join(roomName);
       socket.on("disconnect", () => data.unregisterUser(userName));
 
+      const timestampMsg = new Date().toLocaleString("en-US", {
+        dateStyle: "short",
+        timeStyle: "medium",
+      });
+
       data.addMessage(roomName, {
         sender: "",
         text: `${userName} has joined room ${roomName}`,
+        timestamp: timestampMsg,
       });
       io.to(roomName).emit("chat update", data.roomLog(roomName));
 
       socket.on("message", (text) => {
         const { roomName, userName } = socket.data;
-        const messageInfo = { sender: userName, text };
+        const messageInfo = {
+          sender: userName,
+          text,
+          timestamp: timestampMsg,
+        };
         console.log(roomName, messageInfo);
         data.addMessage(roomName, messageInfo);
         io.to(roomName).emit("chat update", data.roomLog(roomName));

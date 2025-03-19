@@ -23,9 +23,13 @@ const Chat = (props) => {
       <div key={index}>
         <Typography ref={lastMessageRef} variant="h6">
           {message.sender
-            ? `[${message.sender}] ${message.text}`
+            ? `${message.sender} : ${message.text}`
             : `${message.text}`}
         </Typography>
+        <Typography
+          variant="subtitle2"
+          sx={{ mb: 1, mt: 1 }}
+        >{`[${message.timestamp}]`}</Typography>
       </div>
     ));
   };

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "../assets/chat-icon.png";
 import {
   Paper,
   CardHeader,
@@ -14,6 +15,12 @@ const Login = (props) => {
 
   return (
     <Paper elevation={4} sx={{ mt: "0.5em" }}>
+      <img
+        style={{ width: "40%", maxWidth: "200px" }}
+        src={logo}
+        className="App-logo"
+        alt="logo"
+      />
       <CardContent>
         <CardHeader title="Join a Room" />
         <TextField
