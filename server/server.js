@@ -4,6 +4,8 @@ import http from "http";
 import { Server } from "socket.io";
 import * as data from "./data.js";
 
+import * as colors from "./colors.js";
+
 // Reads PORT from the OS, the --env-file flag, or defaults to 9000
 const PORT = process.env.PORT || 9000;
 
@@ -50,15 +52,17 @@ io.on("connect", (socket) => {
     if (data.isUserNameTaken(userName)) {
       joinInfo.error = `The name ${userName} is already taken`;
     } else {
+      joinInfo.color = colors.getRandomColor();
       data.registerUser(userName);
       socket.data = joinInfo;
       socket.join(roomName);
-      socket.on("disconnect", () => data.unregisterUser(userName));
 
-      const timestampOnJoin = new Date(Date.now()).toLocaleString("en-US", {
-        dateStyle: "short",
-        timeStyle: "medium",
+      socket.on("disconnect", () => {
+        data.unregisterUser(userName);
+        colors.releaseColor(socket.data.color);
       });
+
+      const timestampOnJoin = Date.now();
 
       data.addMessage(roomName, {
         sender: "",
@@ -68,14 +72,12 @@ io.on("connect", (socket) => {
       io.to(roomName).emit("chat update", data.roomLog(roomName));
 
       socket.on("message", (text) => {
-        const timestampMsg = new Date(Date.now()).toLocaleString("en-US", {
-          dateStyle: "short",
-          timeStyle: "medium",
-        });
-        const { roomName, userName } = socket.data;
+        const timestampMsg = Date.now();
+        const { roomName, userName, color } = socket.data;
         const messageInfo = {
           sender: userName,
           text,
+          color,
           timestamp: timestampMsg,
         };
         console.log(roomName, messageInfo);
