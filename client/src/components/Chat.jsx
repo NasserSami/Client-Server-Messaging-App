@@ -10,13 +10,50 @@ import {
   TextField,
   Button,
   List,
+  Stack,
+  Drawer,
 } from "@mui/material";
 
 import SendIcon from "@mui/icons-material/Send";
-import { BorderColor } from "@mui/icons-material";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 
 const Chat = (props) => {
   const lastMessageRef = useRef(null);
+
+  /* Menu */
+
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const renderMenu = () => {
+    return (
+      <Box sx={{ width: 250 }} role="presentation">
+        <Stack>
+          <CardHeader
+            title={props.roomName}
+            subheader={`${props.users.length} current user(s)`}
+          />
+        </Stack>
+        <Divider />
+        <CardContent>
+          {props.users.map((user) => (
+            <Typography
+              key={user.id}
+              sx={{
+                color: user.color,
+                fontSize: 24,
+                justifyContent: "left",
+                display: "flex",
+                alignItems: "space-between",
+              }}
+            >
+              {user.userName}
+            </Typography>
+          ))}
+        </CardContent>
+      </Box>
+    );
+  };
 
   const renderMessage = (message, index) => {
     /* New Day Messages */
@@ -130,7 +167,27 @@ const Chat = (props) => {
       elevation={4}
       sx={{ mt: "0.5em", display: "flex", flexDirection: "column" }}
     >
-      <CardHeader title={`${props.roomName} (as ${props.userName})`} />
+      {/* <CardHeader title={`${props.roomName} (as ${props.userName})`} /> */}
+      <Drawer anchor="left" open={menuOpen} onClose={() => setMenuOpen(false)}>
+        {renderMenu()}
+      </Drawer>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          pl: "1em",
+          pr: "1em",
+        }}
+      >
+        <Button variant="contained" onClick={() => setMenuOpen(true)}>
+          <MenuIcon />
+        </Button>
+        <CardHeader title={props.roomName} />
+        <Button variant="contained" onClick={props.onLogout}>
+          <LogoutIcon />
+        </Button>
+      </Stack>
       <Divider />
       <CardContent>
         <List sx={{ height: "60vh", overflowY: "scroll", textAlign: "left" }}>

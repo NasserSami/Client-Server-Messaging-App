@@ -32,6 +32,7 @@ function App() {
     error: "",
   });
 
+  const [users, setUsers] = useState([]);
   /* Chat */
 
   const [chatLog, setChatLog] = useState([]);
@@ -41,8 +42,25 @@ function App() {
 
   const hasJoined = () =>
     joinInfo.userName && joinInfo.roomName && !joinInfo.error;
-  
-  const joinRoom = (joinData) => socket.current.emit("join", joinData);
+
+  const handleLogout = () => {
+    socket.current.disconnect();
+    setJoinInfo({
+      userName: "",
+      roomName: "",
+      error: "",
+    });
+  };
+
+  const joinRoom = (joinData) => {
+    if (!socket.current.connected) {
+      socket.current.connect();
+    }
+    socket.current.emit("join", joinData);
+    socket.current.on("room users", (users) => {
+      setUsers(users);
+    });
+  };
 
   /* WebSocket */
 
@@ -81,7 +99,15 @@ function App() {
     <ThemeProvider theme={theme}>
       <Header title="Chatter Mates - Sam Nasser" />
       {hasJoined() ? (
-        <Chat {...joinInfo} sendMessage={sendMessage} chatLog={chatLog} />
+        <Chat
+          {...joinInfo}
+          sendMessage={sendMessage}
+          onLogout={handleLogout}
+          chatLog={chatLog}
+          roomName={joinInfo.roomName}
+          userInfo={joinInfo}
+          users={users}
+        />
       ) : (
         <Login joinRoom={joinRoom} error={joinInfo.error} />
       )}

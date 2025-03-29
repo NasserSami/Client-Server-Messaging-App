@@ -43,10 +43,27 @@ const io = new Server(httpServer, {});
 // io.on("connect", newClientSocket => {
 //   console.log(`New connection established (id: ${newClientSocket.id})`);
 
+// Function to get all users in a room
+const getUsersInRoom = async (roomName) => {
+  // Get all socket instances in the room
+  const sockets = await io.in(roomName).fetchSockets();
+
+  // Extract user info from each socket
+  const users = sockets.map((socket) => {
+    // Access data stored on the socket
+    return {
+      userName: socket.data.userName,
+      color: socket.data.color,
+    };
+  });
+
+  return users;
+};
+
 io.on("connect", (socket) => {
   console.log("New connection", socket.id);
 
-  socket.on("join", (joinInfo) => {
+  socket.on("join", async (joinInfo) => {
     const { roomName, userName } = joinInfo;
 
     if (data.isUserNameTaken(userName)) {
@@ -57,19 +74,28 @@ io.on("connect", (socket) => {
       socket.data = joinInfo;
       socket.join(roomName);
 
-      socket.on("disconnect", () => {
+      socket.on("disconnect", async () => {
         data.unregisterUser(userName);
         colors.releaseColor(socket.data.color);
+        data.addMessage(roomName, {
+          sender: "",
+          text: `${userName} has left the room`,
+          timestamp: timestampOnJoin,
+        });
+        io.to(roomName).emit("chat update", data.roomLog(roomName));
+        io.to(roomName).emit("room users", await getUsersInRoom(roomName));
       });
 
       const timestampOnJoin = Date.now();
 
       data.addMessage(roomName, {
         sender: "",
-        text: `${userName} has joined room ${roomName}`,
+        text: `${userName} has joined the room`,
         timestamp: timestampOnJoin,
       });
+
       io.to(roomName).emit("chat update", data.roomLog(roomName));
+      io.to(roomName).emit("room users", await getUsersInRoom(roomName));
 
       socket.on("message", (text) => {
         const timestampMsg = Date.now();

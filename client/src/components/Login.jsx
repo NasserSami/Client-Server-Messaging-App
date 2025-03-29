@@ -28,6 +28,11 @@ const Login = (props) => {
           label="User Name"
           value={userName}
           onChange={(e) => setUserName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key == "Enter" && roomName && userName) {
+              props.joinRoom({ roomName, userName });
+            }
+          }}
           sx={{ mb: "1em" }}
         />
         <TextField
@@ -35,6 +40,11 @@ const Login = (props) => {
           label="Room Name"
           value={roomName}
           onChange={(e) => setRoomName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key == "Enter" && roomName && userName) {
+              props.joinRoom({ roomName, userName });
+            }
+          }}
           sx={{ mb: "1em" }}
         />
         <Button
