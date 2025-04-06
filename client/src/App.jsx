@@ -53,9 +53,8 @@ function App() {
   };
 
   const joinRoom = (joinData) => {
-    if (!socket.current.connected) {
-      socket.current.connect();
-    }
+    if (!socket.current.connected)
+        socket.current.connect();
     socket.current.emit("join", joinData);
     socket.current.on("room users", (users) => {
       setUsers(users);

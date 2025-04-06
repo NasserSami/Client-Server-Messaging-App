@@ -11,7 +11,7 @@ import {
   Button,
   List,
   Stack,
-  Drawer,
+  Drawer, 
 } from "@mui/material";
 
 import SendIcon from "@mui/icons-material/Send";
@@ -38,7 +38,7 @@ const Chat = (props) => {
         <CardContent>
           {props.users.map((user) => (
             <Typography
-              key={user.id}
+              key={user.userName}
               sx={{
                 color: user.color,
                 fontSize: 24,
@@ -67,7 +67,9 @@ const Chat = (props) => {
       );
     }
     /* Timestamp */
-    const messageTimestamp = fns.format(message.timestamp, "HH:mm");
+    const messageTimestamp = message.timestamp
+      ? fns.format(new Date(message.timestamp), "HH:mm")
+      : "";
 
     /* Meta Chat Messages */
 
@@ -81,8 +83,8 @@ const Chat = (props) => {
           <Typography variant="h6" textAlign="center">
             <i>{message.text}</i>
           </Typography>
-          <Typography variant="body2" textAlign="center">
-            <i>{messageTimestamp}</i>
+          <Typography variant="body2" sx={{ textAlign: "right" }}>
+            {messageTimestamp}
           </Typography>
         </div>
       );
@@ -106,8 +108,8 @@ const Chat = (props) => {
           <Typography variant="h6" className="message-text">
             {message.text}
           </Typography>
-          <Typography variant="h6" sx={{ textAlign: "right" }}>
-            <i>{messageTimestamp}</i>
+          <Typography variant="body2" sx={{ textAlign: "right" }}>
+            {messageTimestamp}
           </Typography>
         </div>
       </div>
