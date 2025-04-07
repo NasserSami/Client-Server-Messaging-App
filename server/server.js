@@ -82,7 +82,7 @@ io.on("connect", (socket) => {
           text: `${userName} has left the room`,
           timestamp: timestampOnJoin,
         });
-        
+
         io.to(roomName).emit("chat update", data.roomLog(roomName));
         io.to(roomName).emit("room users", await getUsersInRoom(roomName));
         data.updateTypingStatus(roomName, userName, false);
@@ -114,12 +114,42 @@ io.on("connect", (socket) => {
         io.to(roomName).emit("chat update", data.roomLog(roomName));
       });
 
-        socket.emit("typing", data.getTypingUsers(roomName));
-        socket.on("typing", (typingInfo) => {
-          const { roomName, userName, isTyping } = typingInfo;
-          data.updateTypingStatus(roomName, userName, isTyping);
-          io.to(roomName).emit("typing", data.getTypingUsers(roomName));
-        });
+      // Handle edit message event
+      socket.on("edit", (editInfo) => {
+        const { roomName, newText } = editInfo;
+        const { userName } = socket.data;
+
+        //console.log(`Edit request from ${userName}: ${newText}`);
+
+        if (data.editMessage(roomName, userName, newText)) {
+          io.to(roomName).emit("chat update", data.roomLog(roomName));
+        } else {
+          // Could send an error back to the client if needed
+          console.log(`Failed to edit message for ${userName}`);
+        }
+      });
+
+      // Handle delete message event
+      socket.on("delete", (deleteInfo) => {
+        const { roomName } = deleteInfo;
+        const { userName } = socket.data;
+
+        //console.log(`Delete request from ${userName}`);
+
+        if (data.deleteMessage(roomName, userName)) {
+          io.to(roomName).emit("chat update", data.roomLog(roomName));
+        } else {
+          // Could send an error back to the client if needed
+          console.log(`Failed to delete message for ${userName}`);
+        }
+      });
+
+      socket.emit("typing", data.getTypingUsers(roomName));
+      socket.on("typing", (typingInfo) => {
+        const { roomName, userName, isTyping } = typingInfo;
+        data.updateTypingStatus(roomName, userName, isTyping);
+        io.to(roomName).emit("typing", data.getTypingUsers(roomName));
+      });
     }
 
     console.log(joinInfo);

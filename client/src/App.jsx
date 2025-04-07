@@ -39,6 +39,30 @@ function App() {
   const [typingUsers, setTypingUsers] = useState([]);
 
   const sendMessage = (text) => {
+    // Check if this is an edit command
+    if (text.startsWith("/edit ")) {
+      const newText = text.substring(6).trim(); // Extract the text after "/edit "
+      if (newText) {
+        const editInfo = {
+          roomName: joinInfo.roomName,
+          newText: newText,
+        };
+        socket.current.emit("edit", editInfo);
+      }
+
+      return;
+    }
+
+    // Check if this is a delete command
+    if (text === "/del") {
+      const deleteInfo = {
+        roomName: joinInfo.roomName,
+      };
+      socket.current.emit("delete", deleteInfo);
+      return;
+    }
+
+    // Regular message
     socket.current.send(text);
   };
 
@@ -59,8 +83,7 @@ function App() {
   };
 
   const joinRoom = (joinData) => {
-    if (!socket.current.connected)
-        socket.current.connect();
+    if (!socket.current.connected) socket.current.connect();
     socket.current.emit("join", joinData);
     socket.current.on("room users", (users) => {
       setUsers(users);
