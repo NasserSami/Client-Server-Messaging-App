@@ -112,6 +112,29 @@ const Chat = (props) => {
     const yourOwnMessage = message.sender == props.userName;
     const messageClassName = yourOwnMessage ? "user-message" : "message";
 
+    /* Deleted Messages */
+    if (message.deletedAt) {
+      return (
+        <div key={index} ref={lastMessageRef} className={messageClassName}>
+          <div
+            className="message-bubble"
+            style={{ borderColor: message.color }}
+          >
+            <Typography
+              variant="h6"
+              className="message-text"
+              sx={{ color: message.color }}
+            >
+              <strong>{message.sender}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ textAlign: "right" }}>
+              <i>(deleted) {messageTimestamp}</i>
+            </Typography>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div key={index} ref={lastMessageRef} className={messageClassName}>
         <div className="message-bubble" style={{ borderColor: message.color }}>
@@ -126,6 +149,7 @@ const Chat = (props) => {
             {message.text}
           </Typography>
           <Typography variant="body2" sx={{ textAlign: "right" }}>
+            {message.editAt && <i>(edited) </i>}
             {messageTimestamp}
           </Typography>
         </div>
@@ -138,55 +162,56 @@ const Chat = (props) => {
     const chat = props.chatLog ?? [];
     const chatWithSpecialMessages = [];
 
-    let lastMessage = null;
-    chat.forEach((message) => {
-      if (
-        !lastMessage ||
-        fns.getDay(lastMessage.timestamp) != fns.getDay(message.timestamp)
-      ) {
+     let lastMessage = null;
+     chat.forEach((message) => {
+       if (
+         !lastMessage ||
+         fns.getDay(lastMessage.timestamp) != fns.getDay(message.timestamp)
+       ) {
+         chatWithSpecialMessages.push({
+           // Not a user-sent message
+           sender: "",
+           // Formatting to the format "Friday, April 29th, 1453"
+           text: fns.format(message.timestamp, "PPPP"),
+           // A new property we add during rendering to flag this as special
+           newDay: true,
+         });
+       }
+       chatWithSpecialMessages.push(message);
+       lastMessage = message;
+     });
+
+
+      // Remove yourself from the list - you ALREADY KNOW you're typing
+      let typing = props.typingUsers.filter(
+        (userName) => userName != props.userName
+      );
+
+      if (typing.length > 0) {
+        let text = "";
+
+        if (typing.length == 1) {
+          text = `${typing[0]} is typing...`;
+        } else if (typing.length == 2) {
+          text = `${typing[0]} and ${typing[1]} are typing...`;
+        } else {
+          text = "Multiple users are typing...";
+        }
+
+        // Adding the special flag typingFeedback similar to "newDay"
         chatWithSpecialMessages.push({
-          // Not a user-sent message
           sender: "",
-          // Formatting to the format "Friday, April 29th, 1453"
-          text: fns.format(message.timestamp, "PPPP"),
-          // A new property we add during rendering to flag this as special
-          newDay: true,
+          text,
+          typingFeedback: true,
         });
       }
-      chatWithSpecialMessages.push(message);
-      lastMessage = message;
-    });
-
-    // Remove yourself from the list - you ALREADY KNOW you're typing
-    let typing = props.typingUsers.filter(
-      (userName) => userName != props.userName
-    );
-
-    if (typing.length > 0) {
-      let text = "";
-
-      if (typing.length == 1) {
-        text = `${typing[0]} is typing...`;
-      } else if (typing.length == 2) {
-        text = `${typing[0]} and ${typing[1]} are typing...`;
-      } else {
-        text = "Multiple users are typing...";
-      }
-
-      // Adding the special flag typingFeedback similar to "newDay"
-      chatWithSpecialMessages.push({
-        sender: "",
-        text,
-        typingFeedback: true,
-      });
-    }
 
     return chatWithSpecialMessages.map(renderMessage);
   };
 
-  useEffect(() => {
-    lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [props.chatLog, props.typingUsers]);
+     useEffect(() => {
+       lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
+     }, [props.chatLog, props.typingUsers]);
 
   /* Send Message */
 

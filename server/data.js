@@ -89,6 +89,53 @@ const getTypingUsers = (roomName) => {
   return Array.from(Room.get(roomName).typingUsers);
 };
 
+// Function to find the last message from a specific user
+const findLastMessageFromUser = (roomName, userName) => {
+  const messages = Room.get(roomName).log;
+  
+  // Search from most recent to oldest
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    // Only consider messages from this user that are not system messages
+    if (message.sender === userName && message.text) {
+      return { index: i, message };
+    }
+  }
+  
+  return null;
+};
+
+//edit message
+const editMessage = (roomName, userName, newText) => {
+  const result = findLastMessageFromUser(roomName, userName);
+  if (!result) return false;
+
+  const { index } = result;
+  const messages = Room.get(roomName).log;
+
+  // Don't allow editing already deleted messages
+  if (messages[index].deletedAt) return false;
+
+  messages[index].text = newText;
+  messages[index].editAt = Date.now();
+
+  return true;
+};
+
+// Delete a message
+const deleteMessage = (roomName, userName) => {
+  const result = findLastMessageFromUser(roomName, userName);
+  if (!result) return false;
+
+  const { index } = result;
+  const messages = Room.get(roomName).log;
+
+  // Soft delete by setting deletedAt timestamp
+  messages[index].deletedAt = Date.now();
+
+  return true;
+};
+
 
 
 export {
@@ -99,4 +146,6 @@ export {
   addMessage,
   updateTypingStatus,
   getTypingUsers,
+  editMessage,
+  deleteMessage,
 };
