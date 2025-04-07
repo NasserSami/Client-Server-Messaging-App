@@ -11,7 +11,7 @@ import {
   Button,
   List,
   Stack,
-  Drawer, 
+  Drawer,
 } from "@mui/material";
 
 import SendIcon from "@mui/icons-material/Send";
@@ -66,6 +66,23 @@ const Chat = (props) => {
         </div>
       );
     }
+
+    /* User Typing Message */
+
+    if (message.typingFeedback) {
+      return (
+        <Typography
+          key="typing-feedback"
+          ref={lastMessageRef}
+          variant="body1"
+          textAlign="center"
+          sx={{ marginBottom: "1em" }}
+        >
+          <i>{message.text}</i>
+        </Typography>
+      );
+    }
+
     /* Timestamp */
     const messageTimestamp = message.timestamp
       ? fns.format(new Date(message.timestamp), "HH:mm")
@@ -119,48 +136,88 @@ const Chat = (props) => {
   /* Chat Log */
   const renderChatLog = () => {
     const chat = props.chatLog ?? [];
-    const chatWithNewDayMessages = [];
+    const chatWithSpecialMessages = [];
 
     let lastMessage = null;
     chat.forEach((message) => {
-      // Checking if there's no "previous message", start the chat with the Day Message
-      // Or, if the day of the current message is different from the day of the previous message
       if (
         !lastMessage ||
         fns.getDay(lastMessage.timestamp) != fns.getDay(message.timestamp)
       ) {
-        chatWithNewDayMessages.push({
+        chatWithSpecialMessages.push({
           // Not a user-sent message
           sender: "",
-
-          // Formatting the text to the "Friday, April 29th, 1453" format
+          // Formatting to the format "Friday, April 29th, 1453"
           text: fns.format(message.timestamp, "PPPP"),
-
-          // A new property just being added here to *flag this as a special message*
+          // A new property we add during rendering to flag this as special
           newDay: true,
         });
       }
-
-      chatWithNewDayMessages.push(message);
+      chatWithSpecialMessages.push(message);
       lastMessage = message;
     });
 
-    return chatWithNewDayMessages.map(renderMessage);
+    // Remove yourself from the list - you ALREADY KNOW you're typing
+    let typing = props.typingUsers.filter(
+      (userName) => userName != props.userName
+    );
+
+    if (typing.length > 0) {
+      let text = "";
+
+      if (typing.length == 1) {
+        text = `${typing[0]} is typing...`;
+      } else if (typing.length == 2) {
+        text = `${typing[0]} and ${typing[1]} are typing...`;
+      } else {
+        text = "Multiple users are typing...";
+      }
+
+      // Adding the special flag typingFeedback similar to "newDay"
+      chatWithSpecialMessages.push({
+        sender: "",
+        text,
+        typingFeedback: true,
+      });
+    }
+
+    return chatWithSpecialMessages.map(renderMessage);
   };
+
+  useEffect(() => {
+    lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [props.chatLog, props.typingUsers]);
+
+  /* Send Message */
+
+  const [messageText, setMessageText] = useState("");
 
   const handleSendMessage = () => {
     if (!messageText) return;
     props.sendMessage(messageText);
     setMessageText("");
+
+    const { userName, roomName } = props;
+    props.notifyTyping &&
+      props.notifyTyping({ roomName, userName, isTyping: false });
   };
 
-  useEffect(() => {
-    lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [props.chatLog]);
+  const handleMessageTextChange = (e) => {
+    setMessageText(e.target.value);
 
-  /* Send Message */
+    // Adding text to an empty field
+    const startedTyping = messageText == "" && e.target.value != "";
+    // Erasing a text field to empty
+    const finishedTyping = messageText != "" && e.target.value == "";
 
-  const [messageText, setMessageText] = useState("");
+    // Don't spam the notification at every keystroke
+    if (startedTyping || finishedTyping) {
+      const { userName, roomName } = props;
+      let typingInfo = { roomName, userName, isTyping: startedTyping };
+      // Prevening the function to be called if the function is not in the props
+      props.notifyTyping && props.notifyTyping(typingInfo);
+    }
+  };
 
   /* Render Component */
 
@@ -200,13 +257,10 @@ const Chat = (props) => {
           <TextField
             fullWidth
             sx={{ mr: "1em", flex: 9 }}
+            // value={messageText} onChange={e => setMessageText(e.target.value)}
             value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key == "Enter") {
-                handleSendMessage();
-              }
-            }}
+            onChange={handleMessageTextChange}
+            onKeyDown={(e) => e.key == "Enter" && handleSendMessage()}
           />
           <Button
             fullWidth

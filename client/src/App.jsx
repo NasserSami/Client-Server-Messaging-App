@@ -36,8 +36,14 @@ function App() {
   /* Chat */
 
   const [chatLog, setChatLog] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
+
   const sendMessage = (text) => {
     socket.current.send(text);
+  };
+
+  const notifyTyping = (typingInfo) => {
+    socket.current.emit("typing", typingInfo);
   };
 
   const hasJoined = () =>
@@ -80,6 +86,8 @@ function App() {
       // Handle join
       ws.on("join-response", setJoinInfo);
       ws.on("chat update", setChatLog);
+      //ws.on("typing", (data) => console.log(data));
+      ws.on("typing", setTypingUsers);
 
       socket.current = ws;
       effectRan.current = true; // Flag to prevent connecting twice
@@ -106,6 +114,8 @@ function App() {
           roomName={joinInfo.roomName}
           userInfo={joinInfo}
           users={users}
+          typingUsers={typingUsers}
+          notifyTyping={notifyTyping}
         />
       ) : (
         <Login joinRoom={joinRoom} error={joinInfo.error} />

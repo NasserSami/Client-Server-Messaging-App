@@ -82,8 +82,11 @@ io.on("connect", (socket) => {
           text: `${userName} has left the room`,
           timestamp: timestampOnJoin,
         });
+        
         io.to(roomName).emit("chat update", data.roomLog(roomName));
         io.to(roomName).emit("room users", await getUsersInRoom(roomName));
+        data.updateTypingStatus(roomName, userName, false);
+        io.to(roomName).emit("typing", data.getTypingUsers(roomName));
       });
 
       const timestampOnJoin = Date.now();
@@ -110,6 +113,13 @@ io.on("connect", (socket) => {
         data.addMessage(roomName, messageInfo);
         io.to(roomName).emit("chat update", data.roomLog(roomName));
       });
+
+        socket.emit("typing", data.getTypingUsers(roomName));
+        socket.on("typing", (typingInfo) => {
+          const { roomName, userName, isTyping } = typingInfo;
+          data.updateTypingStatus(roomName, userName, isTyping);
+          io.to(roomName).emit("typing", data.getTypingUsers(roomName));
+        });
     }
 
     console.log(joinInfo);
